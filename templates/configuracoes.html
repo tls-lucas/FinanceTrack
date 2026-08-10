@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTrack | Configurações</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell dashboard-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand sidebar-brand-only-logo">
+                <img src="{{ url_for('static', filename='img/Logo_Branca.png') }}" alt="Logo FinanceTrack" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-item" href="{{ url_for('transacoes') }}">Transações</a>
+                <a class="nav-item" href="{{ url_for('relatorios') }}">Relatórios</a>
+                <a class="nav-item active" href="{{ url_for('configuracoes') }}">Configurações</a>
+                <a class="nav-item logout" href="{{ url_for('logout') }}">Sair</a>
+            </nav>
+        </aside>
+        <div class="sidebar-overlay hidden" onclick="toggleSidebar(false)"></div>
+
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <button type="button" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+                <div>Olá, <strong>{{ user_name }}</strong></div>
+            </header>
+
+            <section class="page-header">
+                <h1>CONFIGURAÇÕES</h1>
+            </section>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <section class="config-card">
+                <div class="card-title">DETALHES DO PERFIL</div>
+                
+                <form id="edit-profile-form" method="POST" style="display: none;">
+                    <input type="hidden" name="action" value="edit_profile">
+                    <div class="form-group">
+                        <label>NOME</label>
+                        <div class="input-wrapper">
+                            <input type="text" name="name" id="edit-name" class="form-input" value="{{ user.name }}" required>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="input-icon">
+                                <circle cx="12" cy="8" r="4" stroke="#0F2148" stroke-width="1.5"/>
+                                <path d="M4 20C4 16.134 7.582 13 12 13C16.418 13 20 16.134 20 20" stroke="#0F2148" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-MAIL</label>
+                        <div class="input-wrapper">
+                            <input type="email" class="form-input disabled-input" value="{{ email }}" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="input-icon">
+                                <rect x="2" y="5" width="20" height="14" rx="2" stroke="#999" stroke-width="1.5"/>
+                                <path d="M2 6L12 13L22 6" stroke="#999" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="add-transaction-button">Salvar Alterações</button>
+                        <button type="button" class="secondary-button" onclick="toggleEditMode()">Cancelar</button>
+                    </div>
+                </form>
+
+                <div id="profile-view">
+                    <div class="form-group">
+                        <label>NOME</label>
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input disabled-input" value="{{ user.name }}" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="input-icon">
+                                <circle cx="12" cy="8" r="4" stroke="#0F2148" stroke-width="1.5"/>
+                                <path d="M4 20C4 16.134 7.582 13 12 13C16.418 13 20 16.134 20 20" stroke="#0F2148" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-MAIL</label>
+                        <div class="input-wrapper">
+                            <input type="email" class="form-input disabled-input" value="{{ email }}" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="input-icon">
+                                <rect x="2" y="5" width="20" height="14" rx="2" stroke="#999" stroke-width="1.5"/>
+                                <path d="M2 6L12 13L22 6" stroke="#999" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="add-transaction-button" onclick="toggleEditMode()">Editar Perfil</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="config-card security-card">
+                <div class="card-title">SEGURANÇA</div>
+                <div class="security-grid">
+                    <article class="security-option">
+                        <div class="security-icon security-icon-primary">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 8V6C17 3.79 15.21 2 13 2H11C8.79 2 7 3.79 7 6V8H5C4.45 8 4 8.45 4 9V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V9C20 8.45 19.55 8 19 8H17Z" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 8H15" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round"/>
+                                <path d="M12 13V17" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="12" cy="11" r="1" fill="#0F2148"/>
+                            </svg>
+                        </div>
+                        <div class="security-details">
+                            <h3>Alterar senha</h3>
+                            <p>Mantenha sua conta segura atualizando a senha regularmente.</p>
+                        </div>
+                        <button type="button" class="secondary-button security-button" onclick="togglePasswordModal()">Alterar Senha</button>
+                    </article>
+                    <article class="security-option danger-option">
+                        <div class="security-icon security-icon-danger">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3L2 21H22L12 3Z" stroke="#B91C1C" stroke-width="1.8" stroke-linejoin="round"/>
+                                <path d="M12 9V13" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round"/>
+                                <path d="M12 17H12.01" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="security-details">
+                            <h3>Excluir conta</h3>
+                            <p>Remova permanentemente seu usuário e todos os dados associados.</p>
+                        </div>
+                        <button type="button" class="danger-button security-button" onclick="toggleDeleteModal()">Excluir Conta</button>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="password-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Alterar Senha</h2>
+                <button class="modal-close" onclick="togglePasswordModal()">×</button>
+            </div>
+
+            <form method="POST" class="modal-form">
+                <input type="hidden" name="action" value="change_password">
+
+                <div class="form-group">
+                    <label>Senha Atual</label>
+                    <input type="password" name="old_password" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nova Senha</label>
+                    <input type="password" name="new_password" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirmar Nova Senha</label>
+                    <input type="password" name="confirm_password" class="form-input" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="add-transaction-button">Alterar Senha</button>
+                    <button type="button" class="secondary-button" onclick="togglePasswordModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Excluir Conta</h2>
+                <button class="modal-close" onclick="toggleDeleteModal()">×</button>
+            </div>
+
+            <form method="POST" class="modal-form">
+                <input type="hidden" name="action" value="delete_account">
+
+                <div class="form-group">
+                    <label>Senha Atual</label>
+                    <input type="password" name="current_password" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirmação</label>
+                    <input type="text" name="confirm_phrase" class="form-input" placeholder="Digite EXCLUIR para confirmar" required>
+                </div>
+
+                <p class="danger-text">Essa ação é irreversível. Todos os seus dados serão apagados.</p>
+
+                <div class="modal-actions">
+                    <button type="submit" class="danger-button">Excluir Conta</button>
+                    <button type="button" class="secondary-button" onclick="toggleDeleteModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar(open = null) {
+            const shell = document.querySelector('.dashboard-shell');
+            const shouldOpen = open === null ? !shell.classList.contains('sidebar-open') : open;
+            shell.classList.toggle('sidebar-open', shouldOpen);
+        }
+
+        function toggleEditMode() {
+            const form = document.getElementById('edit-profile-form');
+            const view = document.getElementById('profile-view');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            view.style.display = view.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function togglePasswordModal() {
+            const modal = document.getElementById('password-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function(e) {
+            const passwordModal = document.getElementById('password-modal');
+            const deleteModal = document.getElementById('delete-modal');
+            if (e.target === passwordModal) {
+                togglePasswordModal();
+            }
+            if (e.target === deleteModal) {
+                toggleDeleteModal();
+            }
+        });
+    </script>
+</body>
+</html>

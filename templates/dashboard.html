@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTrack | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="page-shell dashboard-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand sidebar-brand-only-logo">
+                <img src="{{ url_for('static', filename='img/Logo_Branca.png') }}" alt="Logo FinanceTrack" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item active" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-item" href="{{ url_for('transacoes') }}">Transações</a>
+                <a class="nav-item" href="{{ url_for('relatorios') }}">Relatórios</a>
+                <a class="nav-item" href="{{ url_for('configuracoes') }}">Configurações</a>
+                <a class="nav-item logout" href="{{ url_for('logout') }}">Sair</a>
+            </nav>
+        </aside>
+        <div class="sidebar-overlay hidden" onclick="toggleSidebar(false)"></div>
+
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <button type="button" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+                <div>Olá, <strong>{{ user_name }}</strong></div>
+            </header>
+
+            <section class="kpi-row">
+                <article class="kpi-card">
+                    <span class="kpi-label">RECEITAS</span>
+                    <strong class="kpi-value income">R$ {{ "{:.2f}".format(dashboard_data.incomes_total).replace('.', ',') }}</strong>
+                </article>
+                <article class="kpi-card">
+                    <span class="kpi-label">DESPESAS</span>
+                    <strong class="kpi-value expense">R$ {{ "{:.2f}".format(dashboard_data.expenses_total).replace('.', ',') }}</strong>
+                </article>
+                <article class="kpi-card">
+                    <span class="kpi-label">SALDO</span>
+                    <strong class="kpi-value balance">R$ {{ "{:.2f}".format(dashboard_data.balance_total).replace('.', ',') }}</strong>
+                </article>
+            </section>
+
+            <section class="dashboard-grid">
+                <article class="chart-card">
+                    <div class="card-title">FLUXO DE CAIXA - {{ dashboard_data.period_description }}</div>
+                    <canvas id="lineChart"></canvas>
+                </article>
+                <article class="chart-card compact-card">
+                    <div class="card-title">GASTOS</div>
+                    <canvas id="donutChart"></canvas>
+                    <div class="legend-list">
+                        {% if dashboard_data.category_breakdown %}
+                            {% for item in dashboard_data.category_breakdown %}
+                                <span>
+                                    <strong>{{ '{:.0f}'.format((item.value / dashboard_data.category_total * 100) if dashboard_data.category_total else 0) }}%</strong>
+                                    {{ item.label }}
+                                </span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="opacity: 0.8;">Sem gastos registrados nesse período.</span>
+                        {% endif %}
+                    </div>
+                </article>
+            </section>
+
+            <section class="filter-card dashboard-period-card">
+                <form method="get">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Período</label>
+                            <select name="period" id="dashboard-period" class="small-input">
+                                <option value="month" {% if filter_period == 'month' %}selected{% endif %}>Mês</option>
+                                <option value="year" {% if filter_period == 'year' %}selected{% endif %}>Ano</option>
+                                <option value="all" {% if filter_period == 'all' %}selected{% endif %}>Geral</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" id="month-control">
+                            <label for="selected_month">Selecionar mês</label>
+                            <input type="month" id="selected_month" name="selected_month" class="small-input" value="{{ selected_month }}">
+                        </div>
+                        <div class="filter-group" id="year-control">
+                            <label for="selected_year">Selecionar ano</label>
+                            <input type="number" id="selected_year" name="selected_year" class="small-input" min="2000" max="{{ current_year }}" value="{{ selected_year }}">
+                        </div>
+                        <div class="filter-group dashboard-period-actions">
+                            <button type="submit" class="primary-button">Atualizar</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="transactions-section">
+                <div class="section-header">
+                    <h2>ÚLTIMAS TRANSAÇÕES</h2>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>Descrição</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in dashboard_data.recent_transactions %}
+                            <tr>
+                                <td>{{ tx.date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ tx.category.name }}</td>
+                                <td class="{{ 'income' if tx.type == 'income' else 'expense' }}">
+                                    {{ '+' if tx.type == 'income' else '-' }} R$ {{ '{:.2f}'.format(tx.amount).replace('.', ',') }}
+                                </td>
+                                <td>{{ tx.description }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        window.dashboardChartData = {
+            labels: {{ dashboard_data.labels | tojson }},
+            incomes: {{ dashboard_data.incomes | tojson }},
+            expenses: {{ dashboard_data.expenses | tojson }},
+            balances: {{ dashboard_data.balances | tojson }},
+            category_labels: {{ dashboard_data.category_labels | tojson }},
+            category_values: {{ dashboard_data.category_values | tojson }},
+        };
+        window.dashboardPeriod = "{{ filter_period }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        function toggleSidebar(open = null) {
+            const shell = document.querySelector('.dashboard-shell');
+            const shouldOpen = open === null ? !shell.classList.contains('sidebar-open') : open;
+            shell.classList.toggle('sidebar-open', shouldOpen);
+        }
+    </script>
+</body>
+</html>

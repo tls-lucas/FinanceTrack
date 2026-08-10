@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTrack | Relatórios</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell dashboard-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand sidebar-brand-only-logo">
+                <img src="{{ url_for('static', filename='img/Logo_Branca.png') }}" alt="Logo FinanceTrack" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-item" href="{{ url_for('transacoes') }}">Transações</a>
+                <a class="nav-item active" href="{{ url_for('relatorios') }}">Relatórios</a>
+                <a class="nav-item" href="{{ url_for('configuracoes') }}">Configurações</a>
+                <a class="nav-item logout" href="{{ url_for('logout') }}">Sair</a>
+            </nav>
+        </aside>
+        <div class="sidebar-overlay hidden" onclick="toggleSidebar(false)"></div>
+
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <button type="button" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+                <div>Olá, <strong>{{ user_name }}</strong></div>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <section class="filter-card report-form-card">
+                <div class="card-title">GERAR RELATÓRIO PERSONALIZADO</div>
+                <form action="{{ url_for('baixar_relatorio') }}" method="post">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Data inicial</label>
+                            <input class="small-input" type="date" name="start_date" required>
+                        </div>
+                        <div class="filter-group">
+                            <label>Data final</label>
+                            <input class="small-input" type="date" name="end_date" required>
+                        </div>
+                    </div>
+                    <div style="margin-top: 18px; display: flex; justify-content: flex-end;">
+                        <button type="submit" class="primary-button" style="width: min(360px, 100%);">Baixar PDF</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="reports-section">
+                <div class="section-header">
+                    <h2>RELATÓRIOS RECENTES</h2>
+                </div>
+                <div class="report-list">
+                    {% if relatorios_gerados %}
+                        {% for rel in relatorios_gerados %}
+                        <div class="report-card">
+                            <div class="report-card-info">
+                                <div class="report-icon">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 4H14L18 8V20C18 21.1 17.1 22 16 22H6C4.9 22 4 21.1 4 20V6C4 4.9 4.9 4 6 4Z" fill="#F59E0B"/>
+                                        <path d="M14 4V8H18" fill="#fff"/>
+                                        <path d="M8 12H16" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                                        <path d="M8 16H14" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3>{{ rel.label }}</h3>
+                                    <p>{{ rel.subtitle }}</p>
+                                </div>
+                            </div>
+                            <div class="report-actions">
+                                <form method="post" action="{{ url_for('enviar_relatorio', relatorio_id=rel.relatorio_id) if rel.relatorio_id else url_for('enviar_relatorio_mes', year=rel.year, month=rel.month) }}">
+                                    <button type="submit" class="report-download report-email" title="Enviar por e-mail" aria-label="Enviar por e-mail">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4 7.5L12 13L20 7.5" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M5 6H19C19.55 6 20 6.45 20 7V17C20 17.55 19.55 18 19 18H5C4.45 18 4 17.55 4 17V7C4 6.45 4.45 6 5 6Z" stroke="#0F2148" stroke-width="1.8" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                                <a class="report-download" href="{{ url_for('download_relatorio', relatorio_id=rel.relatorio_id) if rel.relatorio_id else url_for('download_relatorio_mes', year=rel.year, month=rel.month) }}" title="Baixar PDF" aria-label="Baixar PDF">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 3V15" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round"/>
+                                        <path d="M8 11L12 15L16 11" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M6 19H18" stroke="#0F2148" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="report-empty">
+                            Nenhum relatório gerado ainda.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="report-note">
+                    Relatórios mensais consolidados em PDF serão enviados automaticamente para seu email cadastrado.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar(open = null) {
+            const shell = document.querySelector('.dashboard-shell');
+            const shouldOpen = open === null ? !shell.classList.contains('sidebar-open') : open;
+            shell.classList.toggle('sidebar-open', shouldOpen);
+        }
+    </script>
+</body>
+</html>

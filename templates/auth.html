@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTrack | Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell auth-shell">
+        <div class="auth-panel">
+            <div class="brand-block auth-brand-block">
+                <div class="brand-logo auth-logo-center">
+                    <img src="{{ url_for('static', filename='img/Logo_Azul.png') }}" alt="Logo FinanceTrack" class="brand-image">
+                </div>
+                <div class="brand-copy">
+                    <h1>Bem-Vindo!</h1>
+                    <p>Acesse ou crie sua conta</p>
+                </div>
+            </div>
+            <div class="auth-form-card">
+                <div class="auth-tabs">
+                    <button type="button" class="tab-button" data-target="login">Entrar</button>
+                    <button type="button" class="tab-button" data-target="register">Cadastrar</button>
+                </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <div class="form-section" id="login-section">
+                    <h2>Organize Suas Finanças</h2>
+                    <form action="{{ url_for('auth') }}?tab=login" method="post" autocomplete="off">
+                        <input type="hidden" name="action" value="login">
+                        <label>
+                            <span>E-MAIL</span>
+                            <input type="email" name="email" placeholder="E-mail" autocomplete="username" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <label>
+                            <span>SENHA</span>
+                            <input type="password" name="password" placeholder="Senha" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <button class="primary-button">Entrar</button>
+                        <div class="auth-form-footer">
+                            <a class="auth-link" href="{{ url_for('auth', tab='forgot') }}">Esqueci minha senha</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="form-section" id="register-section">
+                    <h2>Organize Suas Finanças</h2>
+                    <form action="{{ url_for('auth') }}?tab=register" method="post" autocomplete="off">
+                        <input type="hidden" name="action" value="register">
+                        <label>
+                            <span>NOME</span>
+                            <input type="text" name="name" placeholder="Nome" autocomplete="name" autocapitalize="words" spellcheck="false">
+                        </label>
+                        <label>
+                            <span>E-MAIL</span>
+                            <input type="email" name="email" placeholder="E-mail" autocomplete="email" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <label>
+                            <span>SENHA</span>
+                            <input type="password" name="password" placeholder="Senha" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <button class="primary-button">Criar</button>
+                    </form>
+                </div>
+
+                <div class="form-section" id="forgot-section">
+                    <h2>Recuperar senha</h2>
+                    <p class="auth-section-copy">Informe seu e-mail para receber um código de verificação.</p>
+                    <form action="{{ url_for('auth') }}?tab=forgot" method="post" autocomplete="off">
+                        <input type="hidden" name="action" value="request_password_reset">
+                        <label>
+                            <span>E-MAIL</span>
+                            <input type="email" name="email" placeholder="E-mail" autocomplete="email" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <button class="primary-button">Enviar código</button>
+                        <div class="auth-form-footer">
+                            <a class="auth-link" href="{{ url_for('auth') }}">Voltar para o login</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="form-section" id="verify-section">
+                    <h2>Verificar código</h2>
+                    <p class="auth-section-copy">Digite o código que enviamos para o seu e-mail.</p>
+                    <form action="{{ url_for('auth') }}?tab=verify" method="post" autocomplete="off">
+                        <input type="hidden" name="action" value="verify_password_reset_code">
+                        <label>
+                            <span>CÓDIGO</span>
+                            <input type="text" name="code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" spellcheck="false">
+                        </label>
+                        <button class="primary-button">Confirmar código</button>
+                        <div class="auth-form-footer">
+                            <a class="auth-link" href="{{ url_for('auth', tab='forgot') }}">Não recebi o código</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="form-section" id="reset-section">
+                    <h2>Nova senha</h2>
+                    <p class="auth-section-copy">Defina uma nova senha para sua conta.</p>
+                    <form action="{{ url_for('auth') }}?tab=reset" method="post" autocomplete="off">
+                        <input type="hidden" name="action" value="reset_password">
+                        <label>
+                            <span>NOVA SENHA</span>
+                            <input type="password" name="new_password" placeholder="Nova senha" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <label>
+                            <span>CONFIRMAR SENHA</span>
+                            <input type="password" name="confirm_password" placeholder="Confirmar senha" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+                        </label>
+                        <button class="primary-button">Salvar senha</button>
+                        <div class="auth-form-footer">
+                            <a class="auth-link" href="{{ url_for('auth') }}">Voltar para o login</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.selectedTab = "{{ active_tab }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

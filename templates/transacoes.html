@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTrack | Transações</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell dashboard-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand sidebar-brand-only-logo">
+                <img src="{{ url_for('static', filename='img/Logo_Branca.png') }}" alt="Logo FinanceTrack" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-item active" href="{{ url_for('transacoes') }}">Transações</a>
+                <a class="nav-item" href="{{ url_for('relatorios') }}">Relatórios</a>
+                <a class="nav-item" href="{{ url_for('configuracoes') }}">Configurações</a>
+                <a class="nav-item logout" href="{{ url_for('logout') }}">Sair</a>
+            </nav>
+        </aside>
+        <div class="sidebar-overlay hidden" onclick="toggleSidebar(false)"></div>
+
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <button type="button" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+                <div>Olá, <strong>{{ user_name }}</strong></div>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <section class="filter-card">
+                <div class="card-title">FILTROS</div>
+                <form action="{{ url_for('transacoes') }}" method="get" id="filterForm">
+                    <div class="filter-grid transactions-filter-grid">
+                        <div class="filter-group transactions-filter-column transactions-filter-left">
+                            <div class="transactions-filter-slot">
+                                <label>Intervalo de Datas</label>
+                                <input type="hidden" name="date_range" id="dateRangeInput" value="{{ filters.date_range }}">
+                                <div class="date-buttons">
+                                    <button type="button" class="pill-button date-range-button" data-range="month" onclick="setDateRange('month')">Mês Atual</button>
+                                    <button type="button" class="pill-button date-range-button" data-range="all" onclick="setDateRange('all')">Todas transações</button>
+                                    <button type="button" class="pill-button date-range-button" data-range="custom" onclick="setDateRange('custom')">Personalizado</button>
+                                </div>
+                            </div>
+
+                            <div class="transactions-filter-slot">
+                                <div class="filter-row">
+                                    <label>
+                                        <span>De</span>
+                                        <input class="small-input" type="date" name="start_date" value="{{ filters.start_date }}">
+                                    </label>
+                                    <label>
+                                        <span>Até</span>
+                                        <input class="small-input" type="date" name="end_date" value="{{ filters.end_date }}">
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="transactions-filter-slot">
+                                <label>Intervalo de Valores</label>
+                                <div class="filter-row">
+                                    <div class="currency-input">
+                                        <span class="input-prefix">R$</span>
+                                        <input class="small-input currency-field" type="text" name="min_value" placeholder="0,00" value="{{ filters.min_value if filters.min_value is defined else '' }}">
+                                    </div>
+                                    <div class="currency-input">
+                                        <span class="input-prefix">R$</span>
+                                        <input class="small-input currency-field" type="text" name="max_value" placeholder="0,00" value="{{ filters.max_value if filters.max_value is defined else '' }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-group transactions-filter-column transactions-filter-right">
+                            <div class="transactions-filter-slot">
+                                <label>Categoria(s)</label>
+                                <div class="category-filter-container">
+                                    <div class="category-filter-input" id="categoryFilterInput">
+                                        <span class="category-filter-icon">
+                                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="8" cy="8" r="7"></circle>
+                                                <line x1="13" y1="13" x2="19" y2="19"></line>
+                                            </svg>
+                                        </span>
+                                        <div class="category-pills" id="categoryPills"></div>
+                                        <input type="text" class="category-search" id="categorySearch" placeholder="Buscar categoria..." autocomplete="off" spellcheck="false" onfocus="openCategoryDropdown()" oninput="filterCategoryOptions(this.value)" onkeyup="filterCategoryOptions(this.value)">
+                                    </div>
+                                    <div class="category-dropdown" id="categoryDropdown">
+                                        {% for category in categories %}
+                                        <label class="category-option">
+                                            <input type="checkbox" name="category_id" value="{{ category.id }}" data-name="{{ category.name }}" {% if category.id|string in filters.category_id %}checked{% endif %}>
+                                            <span>{{ category.name }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="transactions-filter-slot">
+                                <label>Tipo de Transação</label>
+                                <div class="radio-row transaction-type-row">
+                                    <label class="radio-option" data-value="income">
+                                        <input type="radio" name="tipo" value="income" {% if filters.tipo == 'income' %}checked{% endif %}>
+                                        <span class="radio-label">Receitas</span>
+                                    </label>
+                                    <label class="radio-option" data-value="expense">
+                                        <input type="radio" name="tipo" value="expense" {% if filters.tipo == 'expense' %}checked{% endif %}>
+                                        <span class="radio-label">Despesas</span>
+                                    </label>
+                                    <label class="radio-option" data-value="all">
+                                        <input type="radio" name="tipo" value="all" {% if filters.tipo == 'all' %}checked{% endif %}>
+                                        <span class="radio-label">Todos</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="transactions-filter-slot transactions-filter-actions-slot">
+                                <div class="filter-actions">
+                                    <button type="button" class="secondary-button" onclick="clearFilters()">Remover Filtros</button>
+                                    <button type="submit" class="add-transaction-button">Aplicar Filtros</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+
+            <section class="transactions-section">
+                <div class="section-header">
+                    <h2>TRANSAÇÕES</h2>
+                </div>
+                <div class="table-card">
+                    <table class="table-highlight">
+                        <thead>
+                            <tr>
+                                <th><span class="sortable" data-sort="date">Data <span class="sort-icon">⇅</span></span></th>
+                                <th>Categoria</th>
+                                <th><span class="sortable" data-sort="amount">Valor <span class="sort-icon">⇅</span></span></th>
+                                <th>Descrição</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if transactions %}
+                                {% for tx in transactions %}
+                                <tr class="transaction-row" data-id="{{ tx.id }}" data-date="{{ tx.date.isoformat() }}" data-category-id="{{ tx.category_id }}" data-type="{{ tx.type }}" data-amount="{{ tx.amount }}" data-description="{{ tx.description|e }}">
+                                    <td>{{ tx.date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ tx.category.name }}</td>
+                                    <td class="{{ 'income' if tx.type == 'income' else 'expense' }}">
+                                        {{ '+' if tx.type == 'income' else '-' }} R$ {{ '{:.2f}'.format(tx.amount).replace('.', ',') }}
+                                    </td>
+                                    <td>{{ tx.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" style="text-align:center; padding: 24px; color: #6c7a99;">Nenhuma transação encontrada.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 22px; display: flex; justify-content: flex-end;">
+                    <button type="button" class="add-transaction-button" onclick="openAddModal()">+ Adicionar</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="transactionModal">
+        <div class="modal-card">
+            <button type="button" class="modal-close" onclick="closeModal()">×</button>
+            <h2 class="modal-title" id="modalTitle">ADICIONAR TRANSAÇÃO</h2>
+            <form action="{{ url_for('adicionar_transacao') }}" method="post" class="modal-form" id="transactionForm">
+                <input type="hidden" name="transaction_id" id="transactionId" value="">
+                <label class="modal-label">Data:</label>
+                <input class="modal-input" type="date" name="date" id="transactionDate" required>
+
+                <label class="modal-label">Categoria existente</label>
+                <select class="modal-input" name="category_id" id="transactionCategory">
+                    <option value="">Selecione</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <small class="helper-text">Ou informe uma nova categoria abaixo</small>
+                <label class="modal-label">Nova categoria (opcional):</label>
+                <input class="modal-input" type="text" name="new_category" id="newCategoryName" placeholder="Criar nova categoria">
+
+                <label class="modal-label">Valor:</label>
+                <div class="currency-input modal-currency-input">
+                    <span class="input-prefix" id="transactionAmountPrefix">R$</span>
+                    <input class="modal-input currency-field" type="text" name="amount" id="transactionAmount" placeholder="0,00" required>
+                </div>
+
+                <label class="modal-label">Descrição:</label>
+                <input class="modal-input" type="text" name="description" id="transactionDescription" placeholder="Descrição da transação">
+
+                <label class="modal-label">Tipo:</label>
+                <div class="radio-row modal-radio-row">
+                    <label class="radio-option">
+                        <input type="radio" name="tipo" value="income" id="transactionTypeIncome" checked>
+                        Receita
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="tipo" value="expense" id="transactionTypeExpense">
+                        Despesa
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="secondary-button modal-delete-button hidden" id="deleteTransactionButton" onclick="requestDeleteTransaction()">Excluir</button>
+                    <button type="submit" class="add-transaction-button modal-submit" id="saveTransactionButton">Salvar</button>
+                </div>
+            </form>
+            <form id="deleteTransactionForm" method="post"></form>
+        </div>
+    </div>
+
+    <script>
+        const sidebarShell = document.querySelector('.dashboard-shell');
+
+        function toggleSidebar(open = null) {
+            const shell = document.querySelector('.dashboard-shell');
+            const shouldOpen = open === null ? !shell.classList.contains('sidebar-open') : open;
+            shell.classList.toggle('sidebar-open', shouldOpen);
+        }
+
+        function updateDateRangeButtons() {
+            const selected = document.getElementById('dateRangeInput')?.value || 'month';
+            document.querySelectorAll('.date-range-button').forEach((button) => {
+                button.classList.toggle('active', button.dataset.range === selected);
+            });
+        }
+
+        function updateTransactionTypeButtons() {
+            document.querySelectorAll('.radio-option').forEach((option) => {
+                const input = option.querySelector('input[type="radio"]');
+                option.classList.toggle('active', input && input.checked);
+            });
+        }
+
+        function updateTransactionAmountPrefix() {
+            const prefix = document.getElementById('transactionAmountPrefix');
+            const expenseRadio = document.getElementById('transactionTypeExpense');
+
+            if (!prefix || !expenseRadio) {
+                return;
+            }
+
+            prefix.textContent = expenseRadio.checked ? '- R$' : 'R$';
+        }
+
+        function syncCategoryInputsState() {
+            const categorySelect = document.getElementById('transactionCategory');
+            const newCategoryName = document.getElementById('newCategoryName');
+
+            if (!categorySelect || !newCategoryName) {
+                return;
+            }
+
+            const selectedCategory = categorySelect.value.trim();
+            const newCategory = newCategoryName.value.trim();
+
+            if (selectedCategory) {
+                newCategoryName.disabled = true;
+                categorySelect.disabled = false;
+                return;
+            }
+
+            if (newCategory) {
+                categorySelect.disabled = true;
+                newCategoryName.disabled = false;
+                return;
+            }
+
+            categorySelect.disabled = false;
+            newCategoryName.disabled = false;
+        }
+
+        function bindCategoryInputsState() {
+            const categorySelect = document.getElementById('transactionCategory');
+            const newCategoryName = document.getElementById('newCategoryName');
+
+            if (!categorySelect || !newCategoryName) {
+                return;
+            }
+
+            categorySelect.addEventListener('change', () => {
+                if (categorySelect.value.trim()) {
+                    newCategoryName.value = '';
+                }
+                syncCategoryInputsState();
+            });
+
+            newCategoryName.addEventListener('input', () => {
+                if (newCategoryName.value.trim()) {
+                    categorySelect.value = '';
+                }
+                syncCategoryInputsState();
+            });
+
+            syncCategoryInputsState();
+        }
+
+        function setDateRange(range, shouldSubmit = true) {
+            const today = new Date();
+            const start = document.querySelector("input[name='start_date']");
+            const end = document.querySelector("input[name='end_date']");
+            const dateRangeInput = document.getElementById('dateRangeInput');
+            const form = document.getElementById('filterForm');
+            if (!dateRangeInput || !start || !end || !form) return;
+
+            dateRangeInput.value = range;
+            if (range === 'month') {
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                start.value = firstDay.toISOString().slice(0, 10);
+                end.value = today.toISOString().slice(0, 10);
+                if (shouldSubmit) form.submit();
+            }
+            if (range === 'all') {
+                start.value = '';
+                end.value = '';
+                if (shouldSubmit) form.submit();
+            }
+            if (range === 'custom') {
+                start.focus();
+            }
+            updateDateRangeButtons();
+        }
+
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            const dateRangeInput = document.getElementById('dateRangeInput');
+            form.querySelectorAll('input[type="date"], input[type="text"]').forEach((input) => input.value = '');
+            if (dateRangeInput) dateRangeInput.value = 'all';
+            form.querySelectorAll('input[name="category_id"]').forEach((input) => input.checked = false);
+            const allTipo = form.querySelector('input[name="tipo"][value="all"]');
+            if (allTipo) allTipo.checked = true;
+            updateDateRangeButtons();
+            form.submit();
+        }
+
+        function bootTransactionsPage() {
+            const dateRangeInput = document.getElementById('dateRangeInput');
+            const start = document.querySelector("input[name='start_date']");
+            const end = document.querySelector("input[name='end_date']");
+
+            if (dateRangeInput) {
+                // Se não há range definido na URL, padrão é 'month'
+                if (!dateRangeInput.value || dateRangeInput.value === '') {
+                    dateRangeInput.value = 'month';
+                    setDateRange('month', false);
+                } else if (dateRangeInput.value === 'month') {
+                    // Se está setado como 'month', aplica as datas
+                    if (start && end && !start.value && !end.value) {
+                        setDateRange('month', false);
+                    }
+                } else if (dateRangeInput.value === 'all') {
+                    // Se é 'all', limpa as datas
+                    if (start && end) {
+                        setDateRange('all', false);
+                    }
+                } else {
+                    updateDateRangeButtons();
+                }
+            }
+
+            // Garante estado visual correto do botão ativo em qualquer cenário.
+            updateDateRangeButtons();
+
+            updateTransactionTypeButtons();
+            updateTransactionAmountPrefix();
+
+            document.querySelectorAll('.radio-option input[type="radio"]').forEach((input) => {
+                input.addEventListener('change', updateTransactionTypeButtons);
+                input.addEventListener('change', updateTransactionAmountPrefix);
+            });
+
+            [start, end].forEach((input) => {
+                if (input) {
+                    input.addEventListener('input', () => {
+                        const dateRangeInput = document.getElementById('dateRangeInput');
+                        if (dateRangeInput) {
+                            dateRangeInput.value = 'custom';
+                            updateDateRangeButtons();
+                        }
+                    });
+                }
+            });
+
+            const transactionForm = document.getElementById('transactionForm');
+            if (transactionForm) {
+                transactionForm.addEventListener('submit', function(event) {
+                    const categorySelect = document.getElementById('transactionCategory');
+                    const newCategoryName = document.getElementById('newCategoryName');
+                    const selectedCategory = categorySelect?.value?.trim();
+                    const newCategory = newCategoryName?.value?.trim();
+                    if (!selectedCategory && !newCategory) {
+                        event.preventDefault();
+                        alert('Por favor selecione uma categoria existente ou informe uma nova categoria.');
+                    }
+                });
+            }
+
+            bindCategoryInputsState();
+
+            // Initialize category filter
+            initCategoryFilter();
+            
+            // Initialize table sort
+            initTableSort();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootTransactionsPage);
+        } else {
+            bootTransactionsPage();
+        }
+
+        function openAddModal() {
+            const modal = document.getElementById('transactionModal');
+            const form = document.getElementById('transactionForm');
+            document.getElementById('modalTitle').textContent = 'ADICIONAR TRANSAÇÃO';
+            form.action = '{{ url_for('adicionar_transacao') }}';
+            document.getElementById('transactionId').value = '';
+            document.getElementById('transactionDate').value = '';
+            document.getElementById('transactionCategory').value = '';
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('transactionAmount').value = '';
+            document.getElementById('transactionDescription').value = '';
+            document.getElementById('transactionTypeIncome').checked = true;
+            document.getElementById('deleteTransactionButton').classList.add('hidden');
+            syncCategoryInputsState();
+            updateTransactionAmountPrefix();
+            modal.classList.remove('hidden');
+        }
+
+        function openEditModal(row) {
+            const modal = document.getElementById('transactionModal');
+            const form = document.getElementById('transactionForm');
+            const id = row.dataset.id;
+            document.getElementById('modalTitle').textContent = 'EDITAR TRANSAÇÃO';
+            form.action = `/transacoes/editar/${id}`;
+            document.getElementById('transactionId').value = id;
+            document.getElementById('transactionDate').value = row.dataset.date;
+            document.getElementById('transactionCategory').value = row.dataset.categoryId;
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('transactionAmount').value = row.dataset.amount;
+            document.getElementById('transactionDescription').value = row.dataset.description;
+            if (row.dataset.type === 'income') {
+                document.getElementById('transactionTypeIncome').checked = true;
+            } else {
+                document.getElementById('transactionTypeExpense').checked = true;
+            }
+            document.getElementById('deleteTransactionButton').classList.remove('hidden');
+            document.getElementById('deleteTransactionButton').dataset.id = id;
+            document.getElementById('deleteTransactionForm').action = `/transacoes/excluir/${id}`;
+            syncCategoryInputsState();
+            updateTransactionAmountPrefix();
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('transactionModal').classList.add('hidden');
+        }
+
+        function requestDeleteTransaction() {
+            if (!confirm('Tem certeza de que deseja excluir esta transação?')) {
+                return;
+            }
+            document.getElementById('deleteTransactionForm').submit();
+        }
+
+        document.querySelectorAll('.transaction-row').forEach((row) => {
+            row.addEventListener('click', () => openEditModal(row));
+        });
+
+        document.getElementById('transactionModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+
+        // Category filter dropdown logic
+        function initCategoryFilter() {
+            const filterInput = document.getElementById('categoryFilterInput');
+            const dropdown = document.getElementById('categoryDropdown');
+            const searchInput = document.getElementById('categorySearch');
+            const pillsContainer = document.getElementById('categoryPills');
+            const checkboxes = Array.from(dropdown.querySelectorAll('input[type="checkbox"]'));
+            const options = Array.from(dropdown.querySelectorAll('.category-option'));
+
+            window.__categoryFilterState = {
+                filterInput,
+                dropdown,
+                searchInput,
+                pillsContainer,
+                checkboxes,
+                options,
+            };
+
+            window.filterCategoryOptions = function(query = '') {
+                const state = window.__categoryFilterState;
+                if (!state) return false;
+
+                const normalizedQuery = String(query || '').trim().toLowerCase();
+                let hasVisibleOption = false;
+
+                state.options.forEach((option) => {
+                    const text = option.textContent.toLowerCase();
+                    const matches = !normalizedQuery || text.includes(normalizedQuery);
+                    option.classList.toggle('hidden', !matches);
+                    if (matches) {
+                        hasVisibleOption = true;
+                    }
+                });
+
+                return hasVisibleOption;
+            };
+
+            window.openCategoryDropdown = function() {
+                const state = window.__categoryFilterState;
+                if (!state) return;
+
+                state.dropdown.classList.add('active');
+                window.filterCategoryOptions(state.searchInput.value);
+            };
+
+            function openDropdown() {
+                window.openCategoryDropdown();
+            }
+
+            // Open dropdown when clicking on the icon
+            document.querySelectorAll('.category-filter-icon').forEach((icon) => {
+                icon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openDropdown();
+                    searchInput.focus();
+                });
+            });
+
+            // Open/close dropdown when clicking on input (but not the icon)
+            filterInput.addEventListener('click', (e) => {
+                if (e.target === searchInput || e.target.closest('.category-filter-icon')) {
+                    return;
+                }
+                openDropdown();
+                searchInput.focus();
+            });
+
+            searchInput.addEventListener('focus', () => {
+                openDropdown();
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    openDropdown();
+                }
+            });
+
+            window.filterCategoryOptions(searchInput.value);
+
+            // Update pills when checkbox changes
+            checkboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', updatePills);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!filterInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+
+            searchInput.addEventListener('blur', () => {
+                window.setTimeout(() => {
+                    if (!filterInput.matches(':focus-within')) {
+                        dropdown.classList.remove('active');
+                    }
+                }, 120);
+            });
+
+            window.filterCategoryOptions(searchInput.value);
+
+            // Initial pill rendering
+            updatePills();
+
+            function updatePills() {
+                pillsContainer.innerHTML = '';
+                checkboxes.forEach((checkbox) => {
+                    if (checkbox.checked) {
+                        const pill = document.createElement('div');
+                        pill.className = 'category-pill';
+                        pill.innerHTML = `
+                            <span>${checkbox.dataset.name}</span>
+                            <span class="category-pill-remove" data-id="${checkbox.value}">×</span>
+                        `;
+                        pill.querySelector('.category-pill-remove').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            checkbox.checked = false;
+                            checkbox.dispatchEvent(new Event('change'));
+                        });
+                        pillsContainer.appendChild(pill);
+                    }
+                });
+            }
+        }
+
+        // Sort table columns logic
+        function initTableSort() {
+            const sortableHeaders = document.querySelectorAll('.sortable');
+            const form = document.getElementById('filterForm');
+            const tableBody = document.querySelector('.table-highlight tbody');
+            const rows = tableBody ? Array.from(tableBody.querySelectorAll('tr.transaction-row')) : [];
+
+            rows.forEach((row, index) => {
+                row.dataset.originalIndex = String(index);
+            });
+
+            let currentSortBy = new URLSearchParams(window.location.search).get('sort_by') || '';
+            let currentSortDir = new URLSearchParams(window.location.search).get('sort_dir') || '';
+
+            function getRowValue(row, sortField) {
+                if (sortField === 'date') {
+                    return new Date(row.dataset.date).getTime();
+                }
+
+                const amount = Number(row.dataset.amount || 0);
+                return row.dataset.type === 'expense' ? -amount : amount;
+            }
+
+            function updateHeaderState() {
+                sortableHeaders.forEach((header) => {
+                    const sortField = header.dataset.sort;
+                    const isActive = (sortField === 'date' && currentSortBy === 'data') || (sortField === 'amount' && currentSortBy === 'valor');
+                    header.classList.toggle('sort-asc', isActive && currentSortDir === 'crescente');
+                    header.classList.toggle('sort-desc', isActive && currentSortDir === 'decrescente');
+                });
+            }
+
+            function applySort() {
+                if (!tableBody || rows.length < 2) {
+                    updateHeaderState();
+                    return;
+                }
+
+                const sortField = currentSortBy === 'data' ? 'date' : currentSortBy === 'valor' ? 'amount' : '';
+
+                const sortedRows = rows.slice().sort((leftRow, rightRow) => {
+                    if (!sortField || !currentSortDir) {
+                        return Number(leftRow.dataset.originalIndex) - Number(rightRow.dataset.originalIndex);
+                    }
+
+                    const leftValue = getRowValue(leftRow, sortField);
+                    const rightValue = getRowValue(rightRow, sortField);
+
+                    if (leftValue === rightValue) {
+                        return Number(leftRow.dataset.originalIndex) - Number(rightRow.dataset.originalIndex);
+                    }
+
+                    const direction = currentSortDir === 'crescente' ? 1 : -1;
+                    return leftValue > rightValue ? direction : -direction;
+                });
+
+                sortedRows.forEach((row) => tableBody.appendChild(row));
+                updateHeaderState();
+            }
+
+            function syncSortToUrl() {
+                const params = new URLSearchParams(window.location.search);
+
+                if (currentSortBy && currentSortDir) {
+                    params.set('sort_by', currentSortBy);
+                    params.set('sort_dir', currentSortDir);
+                } else {
+                    params.delete('sort_by');
+                    params.delete('sort_dir');
+                }
+
+                const newUrl = `${window.location.pathname}?${params.toString()}`.replace(/\?$/, '');
+                window.history.replaceState({}, '', newUrl);
+
+                let sortByInput = form.querySelector('input[name="sort_by"]');
+                let sortDirInput = form.querySelector('input[name="sort_dir"]');
+
+                if (!sortByInput) {
+                    sortByInput = document.createElement('input');
+                    sortByInput.type = 'hidden';
+                    sortByInput.name = 'sort_by';
+                    form.appendChild(sortByInput);
+                }
+
+                if (!sortDirInput) {
+                    sortDirInput = document.createElement('input');
+                    sortDirInput.type = 'hidden';
+                    sortDirInput.name = 'sort_dir';
+                    form.appendChild(sortDirInput);
+                }
+
+                sortByInput.value = currentSortBy;
+                sortDirInput.value = currentSortDir;
+            }
+
+            function setSortState(sortField) {
+                const fieldName = sortField === 'date' ? 'data' : 'valor';
+
+                if (currentSortBy === fieldName) {
+                    if (currentSortDir === 'crescente') {
+                        currentSortDir = 'decrescente';
+                    } else if (currentSortDir === 'decrescente') {
+                        currentSortBy = '';
+                        currentSortDir = '';
+                    } else {
+                        currentSortDir = 'crescente';
+                    }
+                } else {
+                    currentSortBy = fieldName;
+                    currentSortDir = 'crescente';
+                }
+
+                applySort();
+                syncSortToUrl();
+            }
+
+            applySort();
+            
+            sortableHeaders.forEach((header) => {
+                header.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    setSortState(this.dataset.sort);
+                });
+            });
+
+            syncSortToUrl();
+        }
+    </script>
+</body>
+</html>
