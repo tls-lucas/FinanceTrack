@@ -3,3 +3,4 @@ instance/
 .venv/
 .env
 *.pyc
+senhas.txt
